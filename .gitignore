@@ -3,6 +3,9 @@ bdbtest
 bdbtest-1.0
 bdbtest-1.0.tar.gz
 __db.*
+test-suite.log
+tests/*.log
+tests/*.trs
 
 ### Emacs ###
 # -*- mode: gitignore; -*-

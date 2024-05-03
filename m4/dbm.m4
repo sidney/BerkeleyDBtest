@@ -251,8 +251,8 @@ AC_DEFUN([APU_TRY_BERKELEY_DB],
     apu_try_berkeley_db_libname=$5
 
     LIBS="$LIBS -l$apu_try_berkeley_db_libname"
-    AC_TRY_RUN(
-      [
+    AC_RUN_IFELSE(
+      [AC_LANG_SOURCE([[
 #include <stdlib.h>
 #include <stdio.h>
 #include <$apu_try_berkeley_db_header>
@@ -290,7 +290,7 @@ int main (void)
   else
     exit (1);
 }
-      ],
+      ]])],
       [apu_try_berkeley_db=yes],
       [apu_try_berkeley_db=no],
       [apu_try_berkeley_db=yes]
@@ -613,7 +613,7 @@ AC_DEFUN([APU_CHECK_DBM], [
     AC_MSG_NOTICE([checking for Berkeley DB $requested in $user_places])
     APU_CHECK_DB($requested, $user_places)
     if test "$apu_have_db" = "0"; then
-      AC_ERROR(Berkeley DB not found.)
+      AC_MSG_ERROR([Berkeley DB not found.])
     fi
   fi 
 

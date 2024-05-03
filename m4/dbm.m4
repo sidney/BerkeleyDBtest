@@ -23,7 +23,7 @@ dnl Modified to be used by calling just APU_CHECK_DBM with no arguments
 dnl It will find the latest installed version of BerkeleyDB searching back from 18.9
 dnl Implements the configure option --with-berkeley-db
 dnl see its help string for details
-dnl Modified so results are all in LDFLAGS, LIBS, INCLUDES so will automatically
+dnl Modified so results are all in LDFLAGS, LIBS, CPPFLAGS so will automatically
 dnl get used in the Makefile
 
 dnl
@@ -185,15 +185,25 @@ AC_DEFUN([APU_CHECK_BERKELEY_DB], [
   *":"*)
     header="`echo $found | sed -e 's/:.*$//'`"
     lib="`echo $found | sed -e 's/^.*://'`"
-
-    APR_ADDTO(INCLUDES, [-I$header])
+    if test "$bdb_header" != "$(basename $bdb_header)"; then
+      bdb_header_dir="$(dirname $bdb_header)"
+      header="$header/$bdb_header_dir"
+      bdb_header="$(basename $bdb_header)"
+    fi
+    APR_ADDTO(CPPFLAGS, [-I$header])
     APR_ADDTO(LDFLAGS, [-L$lib])
     apu_db_header=$bdb_header
     apu_db_lib=$bdb_libname
     apu_have_db=1
     ;;
   *)
-    APR_ADDTO(INCLUDES, [-I$found/include])
+    header="include"
+    if test "$bdb_header" != "$(basename $bdb_header)"; then
+      bdb_header_dir="$(dirname $bdb_header)"
+      header="$header/$bdb_header_dir"
+      bdb_header="$(basename $bdb_header)"
+    fi
+    APR_ADDTO(CPPFLAGS, [-I$found/$header])
     APR_ADDTO(LDFLAGS, [-L$found/lib])
     apu_db_header=$bdb_header
     apu_db_lib=$bdb_libname

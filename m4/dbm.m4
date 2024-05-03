@@ -1,5 +1,5 @@
 dnl -------------------------------------------------------- -*- autoconf -*-
-dnl This file modified by patching with
+dnl This file extracted and modified from
 dnl https://cgit.freebsd.org/ports/tree/devel/apr1/files/patch-bdb18
 dnl Original below references NOTICE file which attributes copyright to
 dnl the Apache Software Foundation.
@@ -19,6 +19,12 @@ dnl WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 dnl See the License for the specific language governing permissions and
 dnl limitations under the License.
 
+dnl Modified to be used by calling just APU_CHECK_DBM with no arguments
+dnl It will find the latest installed version of BerkeleyDB searching back from 18.9
+dnl Implements the configure option --with-berkeley-db
+dnl see its help string for details
+dnl Modified so results are all in LDFLAGS, LIBS, INCLUDES so will automatically
+dnl get used in the Makefile
 
 dnl
 dnl DBM module
@@ -514,16 +520,7 @@ dnl
 dnl APU_CHECK_DBM: see what kind of DBM backend to use for apr_dbm.
 dnl
 AC_DEFUN([APU_CHECK_DBM], [
-  apu_use_sdbm=0
-  apu_use_lmdb=0
-  apu_use_ndbm=0
-  apu_use_gdbm=0
   apu_use_db=0
-  dnl it's in our codebase
-  apu_have_sdbm=1
-  apu_have_lmdb=0
-  apu_have_gdbm=0
-  apu_have_ndbm=0
   apu_have_db=0
 
   apu_db_header=db.h                # default so apu_select_dbm.h is syntactically correct
@@ -533,7 +530,7 @@ AC_DEFUN([APU_CHECK_DBM], [
   # Although we search for all versions up to 18.9,
   # we should only include existing versions in our
   # help string.
-  dbm_list="sdbm, lmdb, gdbm, ndbm, db, db1, db185, db2, db3, db4"
+  dbm_list="db, db1, db185, db2, db3, db4"
   db_max_version=48
   db_min_version=41
   db_version="$db_min_version"
@@ -568,7 +565,7 @@ AC_DEFUN([APU_CHECK_DBM], [
   done
 
   AC_ARG_WITH(dbm, [APR_HELP_STRING([--with-dbm=DBM], [choose the DBM type to use.
-      DBM={sdbm,lmdb,gdbm,ndbm,db,db1,db185,db2,db3,db4,db4X,db5X,db6X,db18X} for some X=0,...,9])],
+      DBM={db,db1,db185,db2,db3,db4,db4X,db5X,db6X,db18X} for some X=0,...,9])],
   [
     if test "$withval" = "yes"; then
       AC_MSG_ERROR([--with-dbm needs to specify a DBM type to use.
@@ -579,133 +576,7 @@ AC_DEFUN([APU_CHECK_DBM], [
     requested=default
   ])
 
-  AC_ARG_WITH([lmdb], [APR_HELP_STRING([--with-lmdb=DIR], [enable LMDB support])],
-  [
-    apu_have_lmdb=0
-    if test "$withval" = "yes"; then
-      AC_CHECK_HEADER(lmdb.h, AC_CHECK_LIB(lmdb, mdb_dbi_open, [apu_have_lmdb=1]))
-    elif test "$withval" = "no"; then
-      apu_have_lmdb=0
-    else
-      saved_cppflags="$CPPFLAGS"
-      saved_ldflags="$LDFLAGS"
-      CPPFLAGS="$CPPFLAGS -I$withval/include"
-      LDFLAGS="$LDFLAGS -L$withval/lib "
-
-      AC_MSG_CHECKING(checking for lmdb in $withval)
-      AC_CHECK_HEADER(lmdb.h, AC_CHECK_LIB(lmdb, mdb_dbi_open, [apu_have_lmdb=1]))
-      if test "$apu_have_lmdb" != "0"; then
-        APR_ADDTO(LDFLAGS, [-L$withval/lib])
-        APR_ADDTO(INCLUDES, [-I$withval/include])
-      fi
-      CPPFLAGS="$saved_cppflags"
-      LDFLAGS="$saved_ldflags"
-    fi
-
-    if test "$requested" = "lmdb" -a "$apu_have_lmdb" = 0; then
-       AC_MSG_ERROR([LMDB requested, but not found])
-    fi
-  ])
-
-
-  dnl We don't pull in GDBM unless the user asks for it, since it's GPL
-  AC_ARG_WITH([gdbm], [APR_HELP_STRING([--with-gdbm=DIR], [enable GDBM support])],
-  [
-    apu_have_gdbm=0
-    if test "$withval" = "yes"; then
-      AC_CHECK_HEADER(gdbm.h, AC_CHECK_LIB(gdbm, gdbm_open, [apu_have_gdbm=1]))
-    elif test "$withval" = "no"; then
-      apu_have_gdbm=0
-    else
-      saved_cppflags="$CPPFLAGS"
-      saved_ldflags="$LDFLAGS"
-      CPPFLAGS="$CPPFLAGS -I$withval/include"
-      LDFLAGS="$LDFLAGS -L$withval/lib "
-
-      AC_MSG_CHECKING(checking for gdbm in $withval)
-      AC_CHECK_HEADER(gdbm.h, AC_CHECK_LIB(gdbm, gdbm_open, [apu_have_gdbm=1]))
-      if test "$apu_have_gdbm" != "0"; then
-        APR_ADDTO(LDFLAGS, [-L$withval/lib])
-        APR_ADDTO(INCLUDES, [-I$withval/include])
-      fi
-      CPPFLAGS="$saved_cppflags"
-      LDFLAGS="$saved_ldflags"
-    fi
-  ])
-
-  AC_ARG_WITH([ndbm], [APR_HELP_STRING([--with-ndbm=PATH], [
-      Find the NDBM header and library in `PATH/include' and 
-      `PATH/lib'.  If PATH is of the form `HEADER:LIB', then search 
-      for header files in HEADER, and the library in LIB.  If you omit
-      the `=PATH' part completely, the configure script will search
-      for NDBM in a number of standard places.])],
-  [
-    apu_have_ndbm=0
-    if test "$withval" = "yes"; then
-      AC_MSG_CHECKING(checking for ndbm in the usual places)
-      apu_want_ndbm=1
-      NDBM_INC=""
-      NDBM_LDFLAGS=""
-    elif test "$withval" = "no"; then
-      apu_want_ndbm=0
-    else
-      apu_want_ndbm=1
-      case "$withval" in
-        *":"*)
-          NDBM_INC="-I`echo $withval |sed -e 's/:.*$//'`"
-          NDBM_LDFLAGS="-L`echo $withval |sed -e 's/^.*://'`"
-          AC_MSG_CHECKING(checking for ndbm includes with $NDBM_INC libs with $NDBM_LDFLAGS )
-        ;;
-        *)
-          NDBM_INC="-I$withval/include"
-          NDBM_LDFLAGS="-L$withval/lib"
-          AC_MSG_CHECKING(checking for ndbm includes in $withval)
-        ;;
-      esac
-    fi
-
-    save_cppflags="$CPPFLAGS"
-    save_ldflags="$LDFLAGS"
-    CPPFLAGS="$CPPFLAGS $NDBM_INC"
-    LDFLAGS="$LDFLAGS $NDBM_LDFLAGS"
-    dnl db_ndbm_open is what sleepcat's compatibility library actually has in it's lib
-    if test "$apu_want_ndbm" != "0"; then
-      AC_CHECK_HEADER(ndbm.h, 
-        AC_CHECK_LIB(c, dbm_open, [apu_have_ndbm=1;apu_ndbm_lib=c],
-          AC_CHECK_LIB(dbm, dbm_open, [apu_have_ndbm=1;apu_ndbm_lib=dbm],
-            AC_CHECK_LIB(db, dbm_open, [apu_have_ndbm=1;apu_ndbm_lib=db],
-              AC_CHECK_LIB(db, __db_ndbm_open, [apu_have_ndbm=1;apu_ndbm_lib=db])
-            )
-          )
-        )
-      )
-      if test "$apu_have_ndbm" != "0";  then
-        if test "$withval" != "yes"; then
-          APR_ADDTO(INCLUDES, [$NDBM_INC])
-          APR_ADDTO(LDFLAGS, [$NDBM_LDFLAGS])
-        fi
-      elif test "$withval" != "yes"; then
-        AC_ERROR( NDBM not found in the specified directory)
-      fi
-    fi
-    CPPFLAGS="$save_cppflags"
-    LDFLAGS="$save_ldflags"
-  ], [
-    dnl don't check it no one has asked us for it
-    apu_have_ndbm=0
-  ])
-
-
-  if test -n "$apu_db_xtra_libs"; then
-    saveddbxtralibs="$LIBS"
-    LIBS="$apu_db_xtra_libs $LIBS"
-  fi
-
   dnl We're going to try to find the highest version of Berkeley DB supported.
-  dnl
-  dnl Note that we only do this if the user requested it, since the Sleepycat
-  dnl license is viral and requires distribution of source along with programs
-  dnl that use it.
   AC_ARG_WITH([berkeley-db], [APR_HELP_STRING([--with-berkeley-db=PATH],
       [Find the Berkeley DB header and library in `PATH/include' and
       `PATH/lib'.  If PATH is of the form `HEADER:LIB', then search
@@ -722,22 +593,22 @@ AC_DEFUN([APU_CHECK_DBM], [
       apu_want_db=1
       user_places="$withval"
     fi
-
-    if test "$apu_want_db" != "0"; then
-      AC_MSG_NOTICE([checking for Berkeley DB $requested in $user_places])
-      APU_CHECK_DB($requested, $user_places)
-      if test "$apu_have_db" = "0"; then
-        AC_ERROR(Berkeley DB not found.)
-      fi
-    fi 
+  ],
+  [
+    apu_want_db=1
+    user_places=""
   ])
 
-  if test -n "$apu_db_xtra_libs"; then
-    LIBS="$saveddbxtralibs"
-  fi
+  if test "$apu_want_db" != "0"; then
+    AC_MSG_NOTICE([checking for Berkeley DB $requested in $user_places])
+    APU_CHECK_DB($requested, $user_places)
+    if test "$apu_have_db" = "0"; then
+      AC_ERROR(Berkeley DB not found.)
+    fi
+  fi 
 
   case "$requested" in
-    lmdb | sdbm | gdbm | ndbm | db)
+    db)
       eval "apu_use_$requested=1"
       apu_default_dbm=$requested
       ;;
@@ -750,9 +621,8 @@ AC_DEFUN([APU_CHECK_DBM], [
       apu_default_dbm=`echo $requested | sed -e 's/.$//'`
       ;;
     default)
-      dnl ### use more sophisticated DBMs for the default?
-      apu_default_dbm="sdbm (default)"
-      apu_use_sdbm=1
+      apu_default_dbm="db (default)"
+      apu_use_db=1
       ;;
     *)
       AC_MSG_ERROR([--with-dbm=$requested is an unknown DBM type.
@@ -766,44 +636,17 @@ AC_DEFUN([APU_CHECK_DBM], [
   AC_MSG_CHECKING(for default DBM)
   AC_MSG_RESULT($apu_default_dbm)
 
-  AC_SUBST(apu_use_lmdb)
-  AC_SUBST(apu_use_sdbm)
-  AC_SUBST(apu_use_gdbm)
-  AC_SUBST(apu_use_ndbm)
   AC_SUBST(apu_use_db)
 
-  AC_SUBST(apu_have_lmdb)
-  AC_SUBST(apu_have_sdbm)
-  AC_SUBST(apu_have_gdbm)
-  AC_SUBST(apu_have_ndbm)
   AC_SUBST(apu_have_db)
   AC_SUBST(apu_db_header)
   AC_SUBST(apu_db_version)
 
   if test "$apu_have_db" = "1"; then
     APR_ADDTO(LDADD_dbm_db, [-l$apu_db_lib])
-    if test -n "apu_db_xtra_libs"; then
-      APR_ADDTO(LDADD_dbm_db, [$apu_db_xtra_libs])
-    fi
-  fi
-
-  dnl Since we have already done the AC_CHECK_LIB tests, if we have it, 
-  dnl we know the library is there.
-  if test "$apu_have_gdbm" = "1"; then
-    APR_ADDTO(LDADD_dbm_gdbm, [-lgdbm])
-  fi
-
-  if test "$apu_have_ndbm" = "1"; then
-    APR_ADDTO(LDADD_dbm_ndbm, [-l$apu_ndbm_lib])
-  fi
-
-  if test "$apu_have_lmdb" = "1"; then
-    APR_ADDTO(LDADD_dbm_lmdb, [-llmdb])
+    APR_ADDTO(LIBS, [-l$apu_db_lib])
   fi
 
   AC_SUBST(LDADD_dbm_db)
-  AC_SUBST(LDADD_dbm_gdbm)
-  AC_SUBST(LDADD_dbm_ndbm)
-  AC_SUBST(LDADD_dbm_lmdb)
 ])
 

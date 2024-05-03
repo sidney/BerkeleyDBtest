@@ -1,13 +1,9 @@
-AC_INIT([bdbtest], [1.0])
+AC_INIT([bdbtest],[1.0])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 AC_PROG_CC
 AC_CONFIG_MACRO_DIRS([m4])
 AC_CONFIG_FILES([
  Makefile
 ])
-AX_PATH_BDB([18],[
-  LIBS="$BDB_LIBS $LIBS"
-  LDFLAGS="$BDB_LDFLAGS $LDFLAGS"
-  CPPFLAGS="$CPPFLAGS $BDB_CPPFLAGS"
-])
+APU_CHECK_DBM
 AC_OUTPUT

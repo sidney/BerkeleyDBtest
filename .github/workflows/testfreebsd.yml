@@ -1,0 +1,37 @@
+name: Test on FreeBSD
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test on FreeBSD ${{matrix.osvers}} ${{matrix.architecture}}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - osvers: '14.0'
+            architecture: 'x86-64'
+          - osvers: '14.0'
+            architecture: 'arm64'
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        clean: false
+        show-progress: false
+    - uses: cross-platform-actions/action@v0.24.0
+      with:
+        operating_system: freebsd
+        version: ${{matrix.osvers}}
+        architecture: ${{matrix.architecture}}
+        hypervisor: qemu
+        shell: sh
+        run: |
+          sudo pkg update
+          sudo pkg install -y autotools db18
+          autoreconf --install
+          ./configure --with-dbm=db181
+          make
+          make check
+

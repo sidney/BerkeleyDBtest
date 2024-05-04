@@ -4,6 +4,9 @@
 int main() {
     DB_ENV *env;
     u_int32_t env_flags = DB_CREATE | DB_INIT_MPOOL;
+    // Display BerkeleyDB version information
+    printf("\n\n%s\n\n", db_full_version(NULL, NULL, NULL, NULL, NULL));
+
     // Create a BerkeleyDB environment
     printf("Creating BerkeleyDB environment...\n");
     int ret = db_env_create(&env, 0);

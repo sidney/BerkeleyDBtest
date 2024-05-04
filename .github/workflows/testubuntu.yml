@@ -1,0 +1,37 @@
+name: Test on FreeBSD
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test on Ubuntu ${{matrix.osvers}} ${{matrix.architecture}}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - osvers: '22.0.4'
+            architecture: 'arm64'
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        clean: false
+        show-progress: false
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+    - name: Run commands in Docker
+      run: |
+        docker run \
+          --rm \
+          -v $(pwd):/${{ github.workspace }} \
+          -w ${{ github.workspace }} \
+          --platform linux/arm64 \
+          ubuntu:jammy \
+          sh -c "sudo apt update ; \
+          sudo apt -y upgrade ; \
+          sudo pkg install -y autotools-dev autoconf automake libtool db5.3 ; \
+          autoreconf --install ; \
+          ./configure --with-dbm=db53 ; \
+          make ; \
+          make check"

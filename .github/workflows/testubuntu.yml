@@ -28,9 +28,9 @@ jobs:
           -w ${{ github.workspace }} \
           --platform linux/arm64 \
           ubuntu:jammy \
-          sh -c "sudo apt update ; \
-          sudo apt -y upgrade ; \
-          sudo pkg install -y autotools-dev autoconf automake libtool db5.3 ; \
+          sh -c "apt update ; \
+          apt -y upgrade ; \
+          apt -y install autotools-dev autoconf automake libtool db5.3 ; \
           autoreconf --install ; \
           ./configure --with-dbm=db53 ; \
           make ; \

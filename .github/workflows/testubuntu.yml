@@ -1,4 +1,4 @@
-name: Test on FreeBSD
+name: Test on Ubuntu
 
 on:
   workflow_dispatch:

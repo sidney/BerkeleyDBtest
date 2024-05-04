@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
       inputs:
         osversions:
-          description: 'List of OS versions to use [14.0, 13.3, 12.4]'
+          description: 'List of OS versions to use [14.0, 13.3]'
           required: true
-          default: '[ "14.0", "13.3", "12.4" ]'
+          default: '[ "14.0", "13.3" ]'
         architectures:
           description: 'List of architectures [x86-64, arm64]'
           required: true

@@ -2,6 +2,15 @@ name: Test on FreeBSD
 
 on:
   workflow_dispatch:
+      inputs:
+        osversions:
+          description: 'List of OS versions to use [14.0, 13.3, 12.4]'
+          required: true
+          default: '[ "14.0", "13.3", "12.4" ]'
+        architectures:
+          description: 'List of architectures [x86-64, arm64]'
+          required: true
+          default: '[ "x86-64", "arm64" ]'
 
 jobs:
   test:
@@ -10,11 +19,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - osvers: '14.0'
-            architecture: 'x86-64'
-          - osvers: '14.0'
-            architecture: 'arm64'
+        osvers: ${{ fromJSON(github.event.inputs.osversions) }}
+        architecture: ${{ fromJSON(github.event.inputs.architectures) }}
     steps:
     - uses: actions/checkout@v4
       with:
